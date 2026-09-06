@@ -234,7 +234,7 @@ func _refresh_child_ui(creature_name: String) -> void:
 	elif encounter_ready:
 		world_signal_label.text = "✨ Something is moving between the trees!"
 		status_label.text = str(story_event.get("child_encounter_text", "An encounter is waiting."))
-		action_button.text = "Meet %s" % creature_name
+		action_button.text = "Befriend %s" % creature_name
 		action_button.disabled = false
 	else:
 		world_signal_label.text = "🌲 Leaves rustle in the breeze."
