@@ -57,17 +57,17 @@ func _run() -> void:
 	_expect(main.current_location == main.LOCATION_FOREST, "child enters forest")
 	_expect("Whispering Forest" in location_label.text, "forest location is explicit")
 	_expect("moving" in world_signal_label.text, "forest encounter cue is explicit")
-	_expect(action_button.text == "Meet Cloudlet", "forest reveals encounter action")
+	_expect(action_button.text == "Befriend Cloudlet", "forest reveals companion action")
 	_expect("Cloudlet" in status_label.text, "child sees creature encounter")
 
 	action_button.pressed.emit()
 	await process_frame
-	_expect(main.creature_captured, "encounter action captures creature")
+	_expect(main.creature_captured, "companion action captures creature in collection state")
 	_expect(not main.encounter_ready, "encounter resolves after capture")
 	_expect("Cloudlet ✓" in collection_label.text, "captured creature appears in collection")
 
 	SaveStore.reset()
-	print("PASS: parent -> child world cue -> forest encounter -> capture happy path")
+	print("PASS: parent -> child world cue -> forest encounter -> companion collection happy path")
 	quit(0)
 
 func _expect(condition: bool, message: String) -> void:
