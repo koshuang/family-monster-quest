@@ -21,6 +21,7 @@ var collection_label: Label
 
 func _ready() -> void:
 	_load_content()
+	_load_progress()
 	_build_ui()
 	_refresh_ui()
 
@@ -30,6 +31,30 @@ func _load_content() -> void:
 	story_event = ContentCatalog.get_event_for_task(content, SAMPLE_TASK_ID)
 	var creature_id: String = str(story_event.get("creature_id", ""))
 	encountered_creature = ContentCatalog.get_creature(content, creature_id)
+
+func _load_progress() -> void:
+	var saved: Dictionary = SaveStore.load_state()
+	if saved.is_empty():
+		return
+
+	task_confirmed = bool(saved.get("task_confirmed", false))
+	encounter_ready = bool(saved.get("encounter_ready", false))
+	var captured_ids: Variant = saved.get("captured_ids", [])
+	if typeof(captured_ids) == TYPE_ARRAY:
+		for creature_id: Variant in captured_ids:
+			collection.capture(str(creature_id))
+
+	var current_creature_id: String = str(story_event.get("creature_id", ""))
+	creature_captured = collection.has(current_creature_id)
+	if creature_captured:
+		encounter_ready = false
+
+func _save_progress() -> void:
+	SaveStore.save_state({
+		"task_confirmed": task_confirmed,
+		"encounter_ready": encounter_ready,
+		"captured_ids": collection.ids(),
+	})
 
 func _build_ui() -> void:
 	var root := VBoxContainer.new()
@@ -86,6 +111,7 @@ func _advance_happy_path() -> void:
 	if is_parent_mode and not task_confirmed:
 		task_confirmed = true
 		encounter_ready = true
+		_save_progress()
 		_refresh_ui()
 		return
 
@@ -94,6 +120,7 @@ func _advance_happy_path() -> void:
 		creature_captured = collection.capture(creature_id)
 		if creature_captured:
 			encounter_ready = false
+			_save_progress()
 		_refresh_ui()
 
 func _refresh_ui() -> void:
