@@ -7,6 +7,7 @@ var creature_captured := false
 
 var mode_label: Label
 var status_label: Label
+var mode_button: Button
 var action_button: Button
 var collection_label: Label
 
@@ -22,35 +23,42 @@ func _build_ui() -> void:
 	add_child(root)
 
 	var title := Label.new()
+	title.name = "Title"
 	title.text = "Family Monster Quest"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 32)
 	root.add_child(title)
 
 	var subtitle := Label.new()
+	subtitle.name = "Subtitle"
 	subtitle.text = "Real-world actions unlock adventures."
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(subtitle)
 
 	mode_label = Label.new()
+	mode_label.name = "ModeLabel"
 	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(mode_label)
 
-	var mode_button := Button.new()
+	mode_button = Button.new()
+	mode_button.name = "ModeButton"
 	mode_button.text = "Switch Parent / Child Mode"
 	mode_button.pressed.connect(_toggle_mode)
 	root.add_child(mode_button)
 
 	status_label = Label.new()
+	status_label.name = "StatusLabel"
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(status_label)
 
 	action_button = Button.new()
+	action_button.name = "ActionButton"
 	action_button.pressed.connect(_advance_happy_path)
 	root.add_child(action_button)
 
 	collection_label = Label.new()
+	collection_label.name = "CollectionLabel"
 	collection_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(collection_label)
 
