@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "read_20": {
+      "title": "Read for 20 minutes",
+      "category": "learning",
+      "completion_event_id": "whispering_forest_light"
+    }
+  },
+  "story_events": {
+    "whispering_forest_light": {
+      "location": "Whispering Forest",
+      "parent_confirmed_text": "Reading 20 minutes: confirmed. A strange light has appeared in Whispering Forest.",
+      "child_encounter_text": "A strange light is glowing in Whispering Forest. You found Cloudlet!",
+      "creature_id": "cloudlet"
+    }
+  }
+}
