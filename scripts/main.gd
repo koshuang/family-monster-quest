@@ -10,6 +10,8 @@ var creature_captured := false
 var content: Dictionary = {}
 var sample_task: Dictionary = {}
 var story_event: Dictionary = {}
+var encountered_creature: Dictionary = {}
+var collection := CollectionState.new()
 
 var mode_label: Label
 var status_label: Label
@@ -26,6 +28,8 @@ func _load_content() -> void:
 	content = ContentCatalog.load_content()
 	sample_task = ContentCatalog.get_task(content, SAMPLE_TASK_ID)
 	story_event = ContentCatalog.get_event_for_task(content, SAMPLE_TASK_ID)
+	var creature_id: String = str(story_event.get("creature_id", ""))
+	encountered_creature = ContentCatalog.get_creature(content, creature_id)
 
 func _build_ui() -> void:
 	var root := VBoxContainer.new()
@@ -86,12 +90,15 @@ func _advance_happy_path() -> void:
 		return
 
 	if not is_parent_mode and encounter_ready and not creature_captured:
-		creature_captured = true
-		encounter_ready = false
+		var creature_id: String = str(story_event.get("creature_id", ""))
+		creature_captured = collection.capture(creature_id)
+		if creature_captured:
+			encounter_ready = false
 		_refresh_ui()
 
 func _refresh_ui() -> void:
 	mode_label.text = "Mode: Parent (GM)" if is_parent_mode else "Mode: Child (Adventurer)"
+	var creature_name: String = str(encountered_creature.get("name", "Unknown creature"))
 
 	if is_parent_mode:
 		if task_confirmed:
@@ -109,11 +116,22 @@ func _refresh_ui() -> void:
 			action_button.disabled = true
 		elif encounter_ready:
 			status_label.text = str(story_event.get("child_encounter_text", "An encounter is waiting."))
-			action_button.text = "Capture Cloudlet"
+			action_button.text = "Capture %s" % creature_name
 			action_button.disabled = false
 		else:
 			status_label.text = "Nothing unusual is happening yet. Check back after a real-world quest is completed."
 			action_button.text = "Explore"
 			action_button.disabled = true
 
-	collection_label.text = "Creature collection: Cloudlet ✓" if creature_captured else "Creature collection: 0 / 5"
+	collection_label.text = _collection_summary()
+
+func _collection_summary() -> String:
+	var creatures: Dictionary = ContentCatalog.get_creatures(content)
+	if collection.count() == 0:
+		return "Creature collection: 0 / %d" % creatures.size()
+
+	var names: Array[String] = []
+	for creature_id: String in collection.ids():
+		var creature: Dictionary = ContentCatalog.get_creature(content, creature_id)
+		names.append(str(creature.get("name", creature_id)))
+	return "Creature collection: %s ✓ (%d / %d)" % [", ".join(names), collection.count(), creatures.size()]
