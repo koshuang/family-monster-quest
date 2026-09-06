@@ -14,13 +14,13 @@ printf '==> Godot version\n'
 "$GODOT_BIN" --version
 
 printf '==> Headless editor import / script parse\n'
-"$GODOT_BIN" --headless --editor --path . --quit
+timeout 45s "$GODOT_BIN" --headless --editor --path . --quit
 
 printf '==> Headless project launch smoke\n'
-"$GODOT_BIN" --headless --path . --quit-after 2
+timeout 15s "$GODOT_BIN" --headless --path . --quit-after 2
 
 printf '==> Deterministic task-to-story mapping test\n'
-"$GODOT_BIN" --headless --path . --script res://tests/test_content_mapping.gd
+timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_content_mapping.gd
 
 printf '==> Deterministic Godot happy-path interaction test\n'
-"$GODOT_BIN" --headless --path . --script res://tests/test_happy_path.gd
+timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_happy_path.gd
