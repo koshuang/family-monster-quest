@@ -19,7 +19,12 @@ static func load_state(path: String = DEFAULT_PATH) -> Dictionary:
 	if file == null:
 		return {}
 
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	var json := JSON.new()
+	var parse_error: Error = json.parse(file.get_as_text())
+	if parse_error != OK:
+		return {}
+
+	var parsed: Variant = json.data
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return {}
 	return parsed as Dictionary
