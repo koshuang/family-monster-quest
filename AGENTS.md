@@ -64,15 +64,25 @@ A task is not done because code exists. It is done only when:
 - Treat creature definitions, task definitions, and story events as data rather than hard-coding them into UI scripts once the first placeholder loop works.
 - Avoid speculative frameworks and abstractions before two concrete use cases require them.
 
-## Validation
+## CI contract
 
-At minimum before merging:
+All provider-neutral verification must be reachable through:
 
 ```bash
-python3 tests/validate_project.py
+bash .ci/run.sh
+```
+
+GitHub Actions is the canonical CI provider. CircleCI is an opt-in fallback/overflow provider. Do not duplicate test/build command lists in both provider configs; add repository-specific gates to `.ci/run.sh` or scripts it invokes.
+
+Before merging, run:
+
+```bash
+bash .ci/run.sh
 ```
 
 When Godot is available locally, also run the project and verify the first happy path interactively.
+
+See `docs/ci-strategy.md` for provider roles and CI portability rules.
 
 ## Human decision gates
 
