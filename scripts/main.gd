@@ -1,9 +1,15 @@
 extends Control
 
+const SAMPLE_TASK_ID := "read_20"
+
 var is_parent_mode := true
 var task_confirmed := false
 var encounter_ready := false
 var creature_captured := false
+
+var content: Dictionary = {}
+var sample_task: Dictionary = {}
+var story_event: Dictionary = {}
 
 var mode_label: Label
 var status_label: Label
@@ -12,8 +18,14 @@ var action_button: Button
 var collection_label: Label
 
 func _ready() -> void:
+	_load_content()
 	_build_ui()
 	_refresh_ui()
+
+func _load_content() -> void:
+	content = ContentCatalog.load_content()
+	sample_task = ContentCatalog.get_task(content, SAMPLE_TASK_ID)
+	story_event = ContentCatalog.get_event_for_task(content, SAMPLE_TASK_ID)
 
 func _build_ui() -> void:
 	var root := VBoxContainer.new()
@@ -83,11 +95,11 @@ func _refresh_ui() -> void:
 
 	if is_parent_mode:
 		if task_confirmed:
-			status_label.text = "Reading 20 minutes: confirmed. A strange light has appeared in Whispering Forest."
+			status_label.text = str(story_event.get("parent_confirmed_text", "Task confirmed."))
 			action_button.text = "Task already confirmed"
 			action_button.disabled = true
 		else:
-			status_label.text = "Task: Read for 20 minutes. Confirm when completed."
+			status_label.text = "Task: %s. Confirm when completed." % str(sample_task.get("title", "Unknown task"))
 			action_button.text = "Confirm task completion"
 			action_button.disabled = false
 	else:
@@ -96,7 +108,7 @@ func _refresh_ui() -> void:
 			action_button.text = "Adventure complete"
 			action_button.disabled = true
 		elif encounter_ready:
-			status_label.text = "A strange light is glowing in Whispering Forest. You found Cloudlet!"
+			status_label.text = str(story_event.get("child_encounter_text", "An encounter is waiting."))
 			action_button.text = "Capture Cloudlet"
 			action_button.disabled = false
 		else:
