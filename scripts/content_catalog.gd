@@ -26,3 +26,9 @@ static func get_event_for_task(content: Dictionary, task_id: String) -> Dictiona
 	var task: Dictionary = get_task(content, task_id)
 	var event_id: String = str(task.get("completion_event_id", ""))
 	return get_story_event(content, event_id)
+
+static func get_creature(content: Dictionary, creature_id: String) -> Dictionary:
+	return content.get("creatures", {}).get(creature_id, {}) as Dictionary
+
+static func get_creatures(content: Dictionary) -> Dictionary:
+	return content.get("creatures", {}) as Dictionary
