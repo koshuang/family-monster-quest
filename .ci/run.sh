@@ -25,5 +25,8 @@ timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_content_m
 printf '==> Creature data and collection semantics test\n'
 timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_creatures.gd
 
+printf '==> Local persistence restart / corruption test\n'
+timeout 20s "$GODOT_BIN" --headless --path . --script res://tests/test_persistence.gd
+
 printf '==> Deterministic Godot happy-path interaction test\n'
 timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_happy_path.gd
