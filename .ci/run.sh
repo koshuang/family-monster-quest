@@ -22,5 +22,8 @@ timeout 15s "$GODOT_BIN" --headless --path . --quit-after 2
 printf '==> Deterministic task-to-story mapping test\n'
 timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_content_mapping.gd
 
+printf '==> Creature data and collection semantics test\n'
+timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_creatures.gd
+
 printf '==> Deterministic Godot happy-path interaction test\n'
 timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_happy_path.gd
