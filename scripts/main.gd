@@ -22,6 +22,8 @@ var mode_button: Button
 var action_button: Button
 var collection_label: Label
 var world_panel: VBoxContainer
+var location_label: Label
+var world_signal_label: Label
 var home_button: Button
 var forest_button: Button
 
@@ -67,6 +69,7 @@ func _build_ui() -> void:
 	root.name = "PrototypeUI"
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 48)
 	root.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_theme_constant_override("separation", 14)
 	add_child(root)
 
 	var title := Label.new()
@@ -96,6 +99,7 @@ func _build_ui() -> void:
 	world_panel = VBoxContainer.new()
 	world_panel.name = "WorldPanel"
 	world_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	world_panel.add_theme_constant_override("separation", 10)
 	root.add_child(world_panel)
 
 	var world_title := Label.new()
@@ -105,19 +109,34 @@ func _build_ui() -> void:
 	world_title.add_theme_font_size_override("font_size", 22)
 	world_panel.add_child(world_title)
 
+	location_label = Label.new()
+	location_label.name = "LocationLabel"
+	location_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	location_label.add_theme_font_size_override("font_size", 18)
+	world_panel.add_child(location_label)
+
+	world_signal_label = Label.new()
+	world_signal_label.name = "WorldSignalLabel"
+	world_signal_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	world_signal_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	world_panel.add_child(world_signal_label)
+
 	var locations := HBoxContainer.new()
 	locations.name = "Locations"
 	locations.alignment = BoxContainer.ALIGNMENT_CENTER
+	locations.add_theme_constant_override("separation", 12)
 	world_panel.add_child(locations)
 
 	home_button = Button.new()
 	home_button.name = "HomeButton"
 	home_button.text = "🏠 Home"
+	home_button.custom_minimum_size = Vector2(180, 72)
 	home_button.pressed.connect(_go_home)
 	locations.add_child(home_button)
 
 	forest_button = Button.new()
 	forest_button.name = "ForestButton"
+	forest_button.custom_minimum_size = Vector2(240, 72)
 	forest_button.pressed.connect(_go_forest)
 	locations.add_child(forest_button)
 
@@ -129,6 +148,7 @@ func _build_ui() -> void:
 
 	action_button = Button.new()
 	action_button.name = "ActionButton"
+	action_button.custom_minimum_size = Vector2(280, 64)
 	action_button.pressed.connect(_advance_happy_path)
 	root.add_child(action_button)
 
@@ -172,7 +192,7 @@ func _refresh_ui() -> void:
 	mode_label.text = "Mode: Parent (GM)" if is_parent_mode else "Mode: Child (Adventurer)"
 	world_panel.visible = not is_parent_mode
 	var creature_name: String = str(encountered_creature.get("name", "Unknown creature"))
-	forest_button.text = "🌲 Whispering Forest !" if encounter_ready else "🌲 Whispering Forest"
+	forest_button.text = "🌲 Whispering Forest  ✨ !" if encounter_ready else "🌲 Whispering Forest"
 
 	if is_parent_mode:
 		if task_confirmed:
@@ -190,29 +210,36 @@ func _refresh_ui() -> void:
 
 func _refresh_child_ui(creature_name: String) -> void:
 	if current_location == LOCATION_HOME:
+		location_label.text = "You are at: 🏠 Home"
 		home_button.disabled = true
 		forest_button.disabled = false
 		if encounter_ready:
+			world_signal_label.text = "✨ The forest changed while you were away."
 			status_label.text = "Something is glowing in Whispering Forest. Where do you want to explore?"
 		else:
-			status_label.text = "You are home. The world is quiet for now."
-		action_button.text = "Explore the map"
+			world_signal_label.text = "The world is quiet."
+			status_label.text = "You are home. Look around when the world changes."
+		action_button.text = "Choose a place on the map"
 		action_button.disabled = true
 		return
 
+	location_label.text = "You are at: 🌲 Whispering Forest"
 	home_button.disabled = false
 	forest_button.disabled = true
 	if creature_captured:
+		world_signal_label.text = "🌿 The strange glow has faded."
 		status_label.text = "The forest is calm again. Your new companion is safe in the collection."
 		action_button.text = "Adventure complete"
 		action_button.disabled = true
 	elif encounter_ready:
+		world_signal_label.text = "✨ Something is moving between the trees!"
 		status_label.text = str(story_event.get("child_encounter_text", "An encounter is waiting."))
-		action_button.text = "Capture %s" % creature_name
+		action_button.text = "Meet %s" % creature_name
 		action_button.disabled = false
 	else:
+		world_signal_label.text = "🌲 Leaves rustle in the breeze."
 		status_label.text = "The trees rustle softly, but nothing unusual is here yet."
-		action_button.text = "Keep exploring"
+		action_button.text = "Nothing to investigate yet"
 		action_button.disabled = true
 
 func _collection_summary() -> String:
