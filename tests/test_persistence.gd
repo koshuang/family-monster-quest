@@ -12,10 +12,13 @@ func _run() -> void:
 	var first_ui := first.get_node("PrototypeUI")
 	var first_mode_button := first_ui.get_node("ModeButton") as Button
 	var first_action_button := first_ui.get_node("ActionButton") as Button
+	var first_forest_button := first_ui.get_node("WorldPanel/Locations/ForestButton") as Button
 
 	first_action_button.pressed.emit()
 	await process_frame
 	first_mode_button.pressed.emit()
+	await process_frame
+	first_forest_button.pressed.emit()
 	await process_frame
 	first_action_button.pressed.emit()
 	await process_frame
