@@ -1,11 +1,14 @@
 extends Control
 
 const SAMPLE_TASK_ID := "read_20"
+const LOCATION_HOME := "home"
+const LOCATION_FOREST := "forest"
 
 var is_parent_mode := true
 var task_confirmed := false
 var encounter_ready := false
 var creature_captured := false
+var current_location := LOCATION_HOME
 
 var content: Dictionary = {}
 var sample_task: Dictionary = {}
@@ -18,6 +21,9 @@ var status_label: Label
 var mode_button: Button
 var action_button: Button
 var collection_label: Label
+var world_panel: VBoxContainer
+var home_button: Button
+var forest_button: Button
 
 func _ready() -> void:
 	_load_content()
@@ -87,6 +93,34 @@ func _build_ui() -> void:
 	mode_button.pressed.connect(_toggle_mode)
 	root.add_child(mode_button)
 
+	world_panel = VBoxContainer.new()
+	world_panel.name = "WorldPanel"
+	world_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(world_panel)
+
+	var world_title := Label.new()
+	world_title.name = "WorldTitle"
+	world_title.text = "Adventure Map"
+	world_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	world_title.add_theme_font_size_override("font_size", 22)
+	world_panel.add_child(world_title)
+
+	var locations := HBoxContainer.new()
+	locations.name = "Locations"
+	locations.alignment = BoxContainer.ALIGNMENT_CENTER
+	world_panel.add_child(locations)
+
+	home_button = Button.new()
+	home_button.name = "HomeButton"
+	home_button.text = "🏠 Home"
+	home_button.pressed.connect(_go_home)
+	locations.add_child(home_button)
+
+	forest_button = Button.new()
+	forest_button.name = "ForestButton"
+	forest_button.pressed.connect(_go_forest)
+	locations.add_child(forest_button)
+
 	status_label = Label.new()
 	status_label.name = "StatusLabel"
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -105,6 +139,17 @@ func _build_ui() -> void:
 
 func _toggle_mode() -> void:
 	is_parent_mode = not is_parent_mode
+	current_location = LOCATION_HOME
+	_refresh_ui()
+
+func _go_home() -> void:
+	current_location = LOCATION_HOME
+	_refresh_ui()
+
+func _go_forest() -> void:
+	if is_parent_mode:
+		return
+	current_location = LOCATION_FOREST
 	_refresh_ui()
 
 func _advance_happy_path() -> void:
@@ -115,7 +160,7 @@ func _advance_happy_path() -> void:
 		_refresh_ui()
 		return
 
-	if not is_parent_mode and encounter_ready and not creature_captured:
+	if not is_parent_mode and current_location == LOCATION_FOREST and encounter_ready and not creature_captured:
 		var creature_id: String = str(story_event.get("creature_id", ""))
 		creature_captured = collection.capture(creature_id)
 		if creature_captured:
@@ -125,7 +170,9 @@ func _advance_happy_path() -> void:
 
 func _refresh_ui() -> void:
 	mode_label.text = "Mode: Parent (GM)" if is_parent_mode else "Mode: Child (Adventurer)"
+	world_panel.visible = not is_parent_mode
 	var creature_name: String = str(encountered_creature.get("name", "Unknown creature"))
+	forest_button.text = "🌲 Whispering Forest !" if encounter_ready else "🌲 Whispering Forest"
 
 	if is_parent_mode:
 		if task_confirmed:
@@ -137,20 +184,36 @@ func _refresh_ui() -> void:
 			action_button.text = "Confirm task completion"
 			action_button.disabled = false
 	else:
-		if creature_captured:
-			status_label.text = "The forest is calm again. Your new companion is safe in the collection."
-			action_button.text = "Adventure complete"
-			action_button.disabled = true
-		elif encounter_ready:
-			status_label.text = str(story_event.get("child_encounter_text", "An encounter is waiting."))
-			action_button.text = "Capture %s" % creature_name
-			action_button.disabled = false
-		else:
-			status_label.text = "Nothing unusual is happening yet. Check back after a real-world quest is completed."
-			action_button.text = "Explore"
-			action_button.disabled = true
+		_refresh_child_ui(creature_name)
 
 	collection_label.text = _collection_summary()
+
+func _refresh_child_ui(creature_name: String) -> void:
+	if current_location == LOCATION_HOME:
+		home_button.disabled = true
+		forest_button.disabled = false
+		if encounter_ready:
+			status_label.text = "Something is glowing in Whispering Forest. Where do you want to explore?"
+		else:
+			status_label.text = "You are home. The world is quiet for now."
+		action_button.text = "Explore the map"
+		action_button.disabled = true
+		return
+
+	home_button.disabled = false
+	forest_button.disabled = true
+	if creature_captured:
+		status_label.text = "The forest is calm again. Your new companion is safe in the collection."
+		action_button.text = "Adventure complete"
+		action_button.disabled = true
+	elif encounter_ready:
+		status_label.text = str(story_event.get("child_encounter_text", "An encounter is waiting."))
+		action_button.text = "Capture %s" % creature_name
+		action_button.disabled = false
+	else:
+		status_label.text = "The trees rustle softly, but nothing unusual is here yet."
+		action_button.text = "Keep exploring"
+		action_button.disabled = true
 
 func _collection_summary() -> String:
 	var creatures: Dictionary = ContentCatalog.get_creatures(content)
