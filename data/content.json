@@ -13,5 +13,37 @@
       "child_encounter_text": "A strange light is glowing in Whispering Forest. You found Cloudlet!",
       "creature_id": "cloudlet"
     }
+  },
+  "creatures": {
+    "cloudlet": {
+      "name": "Cloudlet",
+      "theme": "sky",
+      "rarity": "common",
+      "story": "A soft cloud companion that appears near children who keep learning a little every day."
+    },
+    "mossprig": {
+      "name": "Mossprig",
+      "theme": "forest",
+      "rarity": "common",
+      "story": "A tiny forest friend that quietly helps put scattered things back where they belong."
+    },
+    "pebblehop": {
+      "name": "Pebblehop",
+      "theme": "earth",
+      "rarity": "common",
+      "story": "A cheerful stone-footed explorer that loves trying one more time after a difficult start."
+    },
+    "glowfin": {
+      "name": "Glowfin",
+      "theme": "water",
+      "rarity": "uncommon",
+      "story": "A shimmering lake creature that becomes brighter when its friends take good care of themselves."
+    },
+    "starwhisk": {
+      "name": "Starwhisk",
+      "theme": "night",
+      "rarity": "rare",
+      "story": "A curious night wanderer said to visit adventurers who complete an especially brave challenge."
+    }
   }
 }
