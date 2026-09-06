@@ -29,7 +29,18 @@ The MVP intentionally focuses on **explore → encounter → collect**, not comb
 - Blender for 3D asset adaptation
 - glTF / GLB asset pipeline
 - Local-first save data for the first prototype
-- GitHub Actions for automated validation
+
+## CI
+
+The repository uses one provider-neutral CI contract:
+
+```bash
+bash .ci/run.sh
+```
+
+GitHub Actions is the canonical CI provider. CircleCI is pre-wired as an opt-in fallback/overflow provider so the same checks can run on a second system without duplicating CI logic.
+
+See `docs/ci-strategy.md` for the provider contract and reusable-template boundary.
 
 ## Current milestone
 
