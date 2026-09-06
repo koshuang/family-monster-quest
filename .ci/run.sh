@@ -18,3 +18,6 @@ printf '==> Headless editor import / script parse\n'
 
 printf '==> Headless project launch smoke\n'
 "$GODOT_BIN" --headless --path . --quit-after 2
+
+printf '==> Deterministic Godot happy-path interaction test\n'
+"$GODOT_BIN" --headless --path . --script res://tests/test_happy_path.gd
