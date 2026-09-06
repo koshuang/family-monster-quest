@@ -4,6 +4,7 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	SaveStore.reset()
 	var packed := load("res://scenes/main.tscn") as PackedScene
 	if packed == null:
 		_fail("Could not load main scene")
@@ -22,8 +23,10 @@ func _run() -> void:
 	var action_button := ui.get_node_or_null("ActionButton") as Button
 	var status_label := ui.get_node_or_null("StatusLabel") as Label
 	var collection_label := ui.get_node_or_null("CollectionLabel") as Label
+	var world_panel := ui.get_node_or_null("WorldPanel") as VBoxContainer
+	var forest_button := world_panel.get_node_or_null("Locations/ForestButton") as Button
 
-	if mode_button == null or action_button == null or status_label == null or collection_label == null:
+	if mode_button == null or action_button == null or status_label == null or collection_label == null or forest_button == null:
 		_fail("Expected prototype controls are missing")
 		return
 
@@ -40,7 +43,15 @@ func _run() -> void:
 	mode_button.pressed.emit()
 	await process_frame
 	_expect(not main.is_parent_mode, "mode switches to child")
-	_expect(action_button.text == "Capture Cloudlet", "child sees capture action")
+	_expect(main.current_location == main.LOCATION_HOME, "child starts from home")
+	_expect(world_panel.visible, "child sees adventure map")
+	_expect("!" in forest_button.text, "forest signals pending world event")
+	_expect(action_button.disabled, "capture is not exposed before entering forest")
+
+	forest_button.pressed.emit()
+	await process_frame
+	_expect(main.current_location == main.LOCATION_FOREST, "child enters forest")
+	_expect(action_button.text == "Capture Cloudlet", "forest reveals capture action")
 	_expect("Cloudlet" in status_label.text, "child sees creature encounter")
 
 	action_button.pressed.emit()
@@ -49,7 +60,8 @@ func _run() -> void:
 	_expect(not main.encounter_ready, "encounter resolves after capture")
 	_expect("Cloudlet ✓" in collection_label.text, "captured creature appears in collection")
 
-	print("PASS: parent -> child -> forest encounter -> capture happy path")
+	SaveStore.reset()
+	print("PASS: parent -> child map -> forest encounter -> capture happy path")
 	quit(0)
 
 func _expect(condition: bool, message: String) -> void:
@@ -58,4 +70,5 @@ func _expect(condition: bool, message: String) -> void:
 
 func _fail(message: String) -> void:
 	push_error("FAIL: %s" % message)
+	SaveStore.reset()
 	quit(1)
