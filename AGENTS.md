@@ -58,11 +58,41 @@ A task is not done because code exists. It is done only when:
 
 ## Architecture rules
 
-- Keep gameplay state separate from presentation where practical.
-- Prefer small scenes and scripts with explicit responsibilities.
-- Keep prototype data deterministic and local until cloud sync becomes necessary.
-- Treat creature definitions, task definitions, and story events as data rather than hard-coding them into UI scripts once the first placeholder loop works.
+Use DDD and Clean Architecture as the default design discipline, but keep it lightweight enough for the MVP.
+
+### Domain-first rule
+
+Before changing JSON, save schemas, Godot node structure, or persistence formats for a new capability:
+
+1. name the domain concept in ubiquitous language;
+2. define the domain state/invariants;
+3. define the interaction or use case and its inputs/outcomes;
+4. define the domain transition/events that matter;
+5. only then choose serialization, storage, scene/UI wiring, or infrastructure details.
+
+Data formats are adapters. They must represent the domain model; they must not define it.
+
+### Layer responsibilities
+
+- **Domain**: entities, value objects, policies/rules, invariants, domain transitions. No Godot UI, file I/O, JSON, or infrastructure dependencies.
+- **Application**: use cases that orchestrate domain objects through ports. It may depend on Domain, but not on concrete UI/storage implementations.
+- **Interface / Presentation**: Godot scenes, Controls, input handling, view models/presenters. Translate user intent into application use cases and render outcomes.
+- **Infrastructure**: JSON/content loading, local save files, platform APIs, future cloud adapters. Implements ports defined inward.
+
+Dependency direction must point inward: Infrastructure/Presentation → Application → Domain.
+
+### Modeling guidance
+
+- Model behavior before tables/files. Prefer explicit methods/use cases such as `confirm_task_completion`, `unlock_story_event`, `enter_location`, `befriend_creature`, `reset_playtest_progress` over UI-driven state mutation.
+- Keep aggregate boundaries small and explicit. Current likely boundaries are `AdventureProgress` and `CreatureCollection`; do not create one giant game-state object by default.
+- Treat task definitions, story definitions, locations, and creature catalog entries as reference content. Runtime progress should refer to stable IDs and enforce domain invariants independently of JSON shape.
+- Domain rules must be testable without rendering a Godot scene or touching disk whenever practical.
+- Persistence/content adapters should convert between domain objects and external representations through explicit mapping.
+- Do not introduce repositories/interfaces solely for ceremony. Add a port when the application layer genuinely needs to depend on a capability whose implementation should remain replaceable or testable.
 - Avoid speculative frameworks and abstractions before two concrete use cases require them.
+- Do not introduce microservices, CQRS, event sourcing, a DI framework, or a generic event bus without a concrete need.
+
+See `docs/domain-model.md` for the current ubiquitous language, interaction model, and candidate boundaries.
 
 ## CI contract
 
