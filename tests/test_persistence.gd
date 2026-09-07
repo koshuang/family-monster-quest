@@ -1,10 +1,13 @@
 extends SceneTree
 
+const TEST_PIN := "2468"
+
 func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
 	_expect(SaveStore.reset(), "development reset succeeds")
+	_expect(ParentGateStore.reset(), "parent gate reset succeeds")
 	_expect(SaveStore.load_state().is_empty(), "missing save falls back to empty state")
 
 	var first := _new_main()
@@ -12,7 +15,14 @@ func _run() -> void:
 	var first_ui := first.get_node("PrototypeUI")
 	var first_mode_button := first_ui.get_node("ModeButton") as Button
 	var first_action_button := first_ui.get_node("ActionButton") as Button
+	var first_parent_pin_input := first_ui.get_node("ParentGatePanel/ParentPinInput") as LineEdit
+	var first_parent_pin_button := first_ui.get_node("ParentGatePanel/ParentPinButton") as Button
 	var first_forest_button := first_ui.get_node("WorldPanel/Locations/ForestButton") as Button
+
+	first_parent_pin_input.text = TEST_PIN
+	first_parent_pin_button.pressed.emit()
+	await process_frame
+	_expect(first.parent_pin_configured, "persistence fixture configures parent gate")
 
 	first_action_button.pressed.emit()
 	await process_frame
@@ -30,6 +40,7 @@ func _run() -> void:
 
 	var second := _new_main()
 	await process_frame
+	_expect(not second.is_parent_mode, "configured parent gate restarts in child mode")
 	_expect(second.task_confirmed, "task confirmation survives restart")
 	_expect(second.creature_captured, "captured creature survives restart")
 	_expect(not second.encounter_ready, "consumed encounter does not replay")
@@ -50,10 +61,12 @@ func _run() -> void:
 	await process_frame
 	_expect(not third.task_confirmed, "corrupt save falls back to initial task state")
 	_expect(not third.creature_captured, "corrupt save falls back to empty collection")
+	_expect(not third.is_parent_mode, "corrupt progress does not bypass persisted parent gate")
 	third.queue_free()
 	await process_frame
 
 	_expect(SaveStore.reset(), "development reset removes save")
+	_expect(ParentGateStore.reset(), "test removes parent gate fixture")
 	print("PASS: local progress survives restart and corrupt saves fall back safely")
 	quit(0)
 
@@ -71,4 +84,5 @@ func _expect(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("FAIL: %s" % message)
 		SaveStore.reset()
+		ParentGateStore.reset()
 		quit(1)

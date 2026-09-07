@@ -9,6 +9,11 @@ var task_confirmed := false
 var encounter_ready := false
 var creature_captured := false
 var current_location := LOCATION_HOME
+var reset_armed := false
+var reset_error := ""
+var parent_pin_configured := false
+var parent_unlock_requested := false
+var parent_gate_error := ""
 
 var content: Dictionary = {}
 var sample_task: Dictionary = {}
@@ -20,15 +25,21 @@ var mode_label: Label
 var status_label: Label
 var mode_button: Button
 var action_button: Button
+var reset_button: Button
 var collection_label: Label
 var world_panel: VBoxContainer
 var location_label: Label
 var world_signal_label: Label
 var home_button: Button
 var forest_button: Button
+var parent_gate_panel: VBoxContainer
+var parent_gate_label: Label
+var parent_pin_input: LineEdit
+var parent_pin_button: Button
 
 func _ready() -> void:
 	_load_content()
+	_load_parent_gate()
 	_load_progress()
 	_build_ui()
 	_refresh_ui()
@@ -39,6 +50,11 @@ func _load_content() -> void:
 	story_event = ContentCatalog.get_event_for_task(content, SAMPLE_TASK_ID)
 	var creature_id: String = str(story_event.get("creature_id", ""))
 	encountered_creature = ContentCatalog.get_creature(content, creature_id)
+
+func _load_parent_gate() -> void:
+	parent_pin_configured = ParentGateStore.has_pin()
+	if parent_pin_configured:
+		is_parent_mode = false
 
 func _load_progress() -> void:
 	var saved: Dictionary = SaveStore.load_state()
@@ -57,8 +73,8 @@ func _load_progress() -> void:
 	if creature_captured:
 		encounter_ready = false
 
-func _save_progress() -> void:
-	SaveStore.save_state({
+func _save_progress() -> bool:
+	return SaveStore.save_state({
 		"task_confirmed": task_confirmed,
 		"encounter_ready": encounter_ready,
 		"captured_ids": collection.ids(),
@@ -92,9 +108,33 @@ func _build_ui() -> void:
 
 	mode_button = Button.new()
 	mode_button.name = "ModeButton"
-	mode_button.text = "Switch Parent / Child Mode"
 	mode_button.pressed.connect(_toggle_mode)
 	root.add_child(mode_button)
+
+	parent_gate_panel = VBoxContainer.new()
+	parent_gate_panel.name = "ParentGatePanel"
+	parent_gate_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	parent_gate_panel.add_theme_constant_override("separation", 8)
+	root.add_child(parent_gate_panel)
+
+	parent_gate_label = Label.new()
+	parent_gate_label.name = "ParentGateLabel"
+	parent_gate_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	parent_gate_panel.add_child(parent_gate_label)
+
+	parent_pin_input = LineEdit.new()
+	parent_pin_input.name = "ParentPinInput"
+	parent_pin_input.placeholder_text = "4-digit parent PIN"
+	parent_pin_input.secret = true
+	parent_pin_input.max_length = 4
+	parent_pin_input.custom_minimum_size = Vector2(220, 48)
+	parent_gate_panel.add_child(parent_pin_input)
+
+	parent_pin_button = Button.new()
+	parent_pin_button.name = "ParentPinButton"
+	parent_pin_button.custom_minimum_size = Vector2(220, 48)
+	parent_pin_button.pressed.connect(_submit_parent_pin)
+	parent_gate_panel.add_child(parent_pin_button)
 
 	world_panel = VBoxContainer.new()
 	world_panel.name = "WorldPanel"
@@ -152,15 +192,62 @@ func _build_ui() -> void:
 	action_button.pressed.connect(_advance_happy_path)
 	root.add_child(action_button)
 
+	reset_button = Button.new()
+	reset_button.name = "ResetButton"
+	reset_button.custom_minimum_size = Vector2(280, 52)
+	reset_button.pressed.connect(_request_reset)
+	root.add_child(reset_button)
+
 	collection_label = Label.new()
 	collection_label.name = "CollectionLabel"
 	collection_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(collection_label)
 
 func _toggle_mode() -> void:
-	is_parent_mode = not is_parent_mode
-	current_location = LOCATION_HOME
+	reset_armed = false
+	reset_error = ""
+	parent_gate_error = ""
+	if is_parent_mode:
+		if not parent_pin_configured:
+			parent_gate_error = "Set a 4-digit parent PIN before entering Child mode."
+			_refresh_ui()
+			return
+		is_parent_mode = false
+		current_location = LOCATION_HOME
+		_refresh_ui()
+		return
+
+	parent_unlock_requested = true
 	_refresh_ui()
+
+func _submit_parent_pin() -> void:
+	var pin := parent_pin_input.text.strip_edges()
+	parent_gate_error = ""
+	if is_parent_mode and not parent_pin_configured:
+		if not ParentGateStore.is_valid_pin(pin):
+			parent_gate_error = "Use exactly 4 digits for the parent PIN."
+			_refresh_ui()
+			return
+		if not ParentGateStore.save_pin(pin):
+			parent_gate_error = "Could not save the parent PIN on this device."
+			_refresh_ui()
+			return
+		parent_pin_configured = true
+		parent_pin_input.clear()
+		_refresh_ui()
+		return
+
+	if not is_parent_mode and parent_unlock_requested:
+		if not ParentGateStore.verify_pin(pin):
+			parent_gate_error = "Incorrect parent PIN."
+			parent_pin_input.clear()
+			_refresh_ui()
+			return
+		is_parent_mode = true
+		current_location = LOCATION_HOME
+		parent_unlock_requested = false
+		parent_pin_input.clear()
+		_refresh_ui()
 
 func _go_home() -> void:
 	current_location = LOCATION_HOME
@@ -188,14 +275,58 @@ func _advance_happy_path() -> void:
 			_save_progress()
 		_refresh_ui()
 
+func _request_reset() -> void:
+	if not is_parent_mode or not parent_pin_configured:
+		return
+	reset_error = ""
+	if not reset_armed:
+		reset_armed = true
+		_refresh_ui()
+		return
+	_reset_playtest_progress()
+
+func _reset_playtest_progress() -> void:
+	if not SaveStore.reset():
+		reset_armed = false
+		reset_error = "Reset failed. Existing local progress was kept; try again."
+		_refresh_ui()
+		return
+
+	task_confirmed = false
+	encounter_ready = false
+	creature_captured = false
+	current_location = LOCATION_HOME
+	collection = CollectionState.new()
+	reset_armed = false
+	reset_error = ""
+	_refresh_ui()
+
 func _refresh_ui() -> void:
 	mode_label.text = "Mode: Parent (GM)" if is_parent_mode else "Mode: Child (Adventurer)"
+	mode_button.text = "Switch to Child Mode" if is_parent_mode else "Parent Mode"
 	world_panel.visible = not is_parent_mode
+
+	var show_pin_setup := is_parent_mode and not parent_pin_configured
+	var show_parent_unlock := not is_parent_mode and parent_unlock_requested
+	parent_gate_panel.visible = show_pin_setup or show_parent_unlock
+	if show_pin_setup:
+		parent_gate_label.text = parent_gate_error if not parent_gate_error.is_empty() else "Set a parent PIN before handing the game to a child."
+		parent_pin_button.text = "Set parent PIN"
+	elif show_parent_unlock:
+		parent_gate_label.text = parent_gate_error if not parent_gate_error.is_empty() else "Enter the parent PIN to leave Child mode."
+		parent_pin_button.text = "Unlock Parent Mode"
+
+	reset_button.visible = is_parent_mode and parent_pin_configured
+	reset_button.text = "Confirm reset demo progress" if reset_armed else "Reset demo progress"
 	var creature_name: String = str(encountered_creature.get("name", "Unknown creature"))
 	forest_button.text = "🌲 Whispering Forest  ✨ !" if encounter_ready else "🌲 Whispering Forest"
 
 	if is_parent_mode:
-		if task_confirmed:
+		if not reset_error.is_empty():
+			status_label.text = reset_error
+		elif reset_armed:
+			status_label.text = "Reset is armed. Press reset again to clear this demo's local progress."
+		elif task_confirmed:
 			status_label.text = str(story_event.get("parent_confirmed_text", "Task confirmed."))
 			action_button.text = "Task already confirmed"
 			action_button.disabled = true
@@ -203,6 +334,8 @@ func _refresh_ui() -> void:
 			status_label.text = "Task: %s. Confirm when completed." % str(sample_task.get("title", "Unknown task"))
 			action_button.text = "Confirm task completion"
 			action_button.disabled = false
+		if reset_armed:
+			action_button.disabled = true
 	else:
 		_refresh_child_ui(creature_name)
 
