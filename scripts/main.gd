@@ -9,6 +9,7 @@ var task_confirmed := false
 var encounter_ready := false
 var creature_captured := false
 var current_location := LOCATION_HOME
+var reset_armed := false
 
 var content: Dictionary = {}
 var sample_task: Dictionary = {}
@@ -20,6 +21,7 @@ var mode_label: Label
 var status_label: Label
 var mode_button: Button
 var action_button: Button
+var reset_button: Button
 var collection_label: Label
 var world_panel: VBoxContainer
 var location_label: Label
@@ -152,6 +154,12 @@ func _build_ui() -> void:
 	action_button.pressed.connect(_advance_happy_path)
 	root.add_child(action_button)
 
+	reset_button = Button.new()
+	reset_button.name = "ResetButton"
+	reset_button.custom_minimum_size = Vector2(280, 52)
+	reset_button.pressed.connect(_request_reset)
+	root.add_child(reset_button)
+
 	collection_label = Label.new()
 	collection_label.name = "CollectionLabel"
 	collection_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -160,6 +168,7 @@ func _build_ui() -> void:
 func _toggle_mode() -> void:
 	is_parent_mode = not is_parent_mode
 	current_location = LOCATION_HOME
+	reset_armed = false
 	_refresh_ui()
 
 func _go_home() -> void:
@@ -188,14 +197,37 @@ func _advance_happy_path() -> void:
 			_save_progress()
 		_refresh_ui()
 
+func _request_reset() -> void:
+	if not is_parent_mode:
+		return
+	if not reset_armed:
+		reset_armed = true
+		_refresh_ui()
+		return
+	_reset_playtest_progress()
+
+func _reset_playtest_progress() -> void:
+	SaveStore.reset()
+	task_confirmed = false
+	encounter_ready = false
+	creature_captured = false
+	current_location = LOCATION_HOME
+	collection = CollectionState.new()
+	reset_armed = false
+	_refresh_ui()
+
 func _refresh_ui() -> void:
 	mode_label.text = "Mode: Parent (GM)" if is_parent_mode else "Mode: Child (Adventurer)"
 	world_panel.visible = not is_parent_mode
+	reset_button.visible = is_parent_mode
+	reset_button.text = "Confirm reset demo progress" if reset_armed else "Reset demo progress"
 	var creature_name: String = str(encountered_creature.get("name", "Unknown creature"))
 	forest_button.text = "🌲 Whispering Forest  ✨ !" if encounter_ready else "🌲 Whispering Forest"
 
 	if is_parent_mode:
-		if task_confirmed:
+		if reset_armed:
+			status_label.text = "Reset is armed. Press reset again to clear this demo's local progress."
+		elif task_confirmed:
 			status_label.text = str(story_event.get("parent_confirmed_text", "Task confirmed."))
 			action_button.text = "Task already confirmed"
 			action_button.disabled = true
@@ -203,6 +235,8 @@ func _refresh_ui() -> void:
 			status_label.text = "Task: %s. Confirm when completed." % str(sample_task.get("title", "Unknown task"))
 			action_button.text = "Confirm task completion"
 			action_button.disabled = false
+		if reset_armed:
+			action_button.disabled = true
 	else:
 		_refresh_child_ui(creature_name)
 
