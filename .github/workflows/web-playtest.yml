@@ -1,0 +1,71 @@
+name: Web Playtest Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'export_presets.cfg'
+      - '.ci/build-web.sh'
+      - '.github/workflows/web-playtest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: web-playtest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run canonical verification first
+        run: bash .ci/run.sh
+
+      - name: Cache Godot export templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/family-monster-quest/export-templates
+          key: godot-export-templates-4.6.3-stable-v1
+
+      - name: Build Web export
+        run: bash .ci/build-web.sh
+
+      - name: Upload downloadable Web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-monster-quest-web
+          path: build/web
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
