@@ -9,6 +9,7 @@ required_files = [
     ROOT / "scripts" / "main.gd",
     ROOT / "scripts" / "content_catalog.gd",
     ROOT / "scripts" / "collection_state.gd",
+    ROOT / "scripts" / "parent_gate_store.gd",
     ROOT / "data" / "content.json",
     ROOT / "README.md",
     ROOT / "AGENTS.md",
@@ -20,6 +21,7 @@ for path in required_files:
 project = (ROOT / "project.godot").read_text(encoding="utf-8")
 scene = (ROOT / "scenes" / "main.tscn").read_text(encoding="utf-8")
 script = (ROOT / "scripts" / "main.gd").read_text(encoding="utf-8")
+parent_gate = (ROOT / "scripts" / "parent_gate_store.gd").read_text(encoding="utf-8")
 content_text = (ROOT / "data" / "content.json").read_text(encoding="utf-8")
 content = json.loads(content_text)
 
@@ -29,13 +31,18 @@ assert 'res://scripts/main.gd' in scene
 
 for expected in [
     "Confirm task completion",
-    "Switch Parent / Child Mode",
+    "Switch to Child Mode",
+    "Unlock Parent Mode",
+    "Reset demo progress",
     "Creature collection",
     "CollectionState",
     "ContentCatalog",
+    "ParentGateStore",
 ]:
     assert expected in script, f"prototype contract marker missing: {expected}"
 
+assert "sha256_text" in parent_gate
+assert "pin_hash" in parent_gate
 assert "read_20" in content.get("tasks", {})
 assert "whispering_forest_light" in content.get("story_events", {})
 assert len(content.get("creatures", {})) == 5
