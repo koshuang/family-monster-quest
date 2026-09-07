@@ -21,6 +21,7 @@ func _run() -> void:
 
 	var mode_button := ui.get_node_or_null("ModeButton") as Button
 	var action_button := ui.get_node_or_null("ActionButton") as Button
+	var reset_button := ui.get_node_or_null("ResetButton") as Button
 	var status_label := ui.get_node_or_null("StatusLabel") as Label
 	var collection_label := ui.get_node_or_null("CollectionLabel") as Label
 	var world_panel := ui.get_node_or_null("WorldPanel") as VBoxContainer
@@ -28,13 +29,14 @@ func _run() -> void:
 	var world_signal_label := world_panel.get_node_or_null("WorldSignalLabel") as Label
 	var forest_button := world_panel.get_node_or_null("Locations/ForestButton") as Button
 
-	if mode_button == null or action_button == null or status_label == null or collection_label == null or forest_button == null or location_label == null or world_signal_label == null:
+	if mode_button == null or action_button == null or reset_button == null or status_label == null or collection_label == null or forest_button == null or location_label == null or world_signal_label == null:
 		_fail("Expected prototype controls are missing")
 		return
 
 	_expect(main.is_parent_mode, "starts in parent mode")
 	_expect(not main.task_confirmed, "sample task starts unconfirmed")
 	_expect(action_button.text == "Confirm task completion", "parent sees task confirmation action")
+	_expect(reset_button.visible, "reset is visible in parent mode")
 
 	action_button.pressed.emit()
 	await process_frame
@@ -47,6 +49,7 @@ func _run() -> void:
 	_expect(not main.is_parent_mode, "mode switches to child")
 	_expect(main.current_location == main.LOCATION_HOME, "child starts from home")
 	_expect(world_panel.visible, "child sees adventure map")
+	_expect(not reset_button.visible, "child mode never exposes reset")
 	_expect("Home" in location_label.text, "current location is explicit")
 	_expect("changed" in world_signal_label.text, "world change cue is explicit")
 	_expect("!" in forest_button.text, "forest signals pending world event")
@@ -65,9 +68,35 @@ func _run() -> void:
 	_expect(main.creature_captured, "companion action captures creature in collection state")
 	_expect(not main.encounter_ready, "encounter resolves after capture")
 	_expect("Cloudlet ✓" in collection_label.text, "captured creature appears in collection")
+	_expect(not SaveStore.load_state().is_empty(), "completed demo is persisted before reset")
+
+	mode_button.pressed.emit()
+	await process_frame
+	_expect(main.is_parent_mode, "can return to parent mode for reset")
+	_expect(reset_button.visible, "reset returns with parent mode")
+	_expect(reset_button.text == "Reset demo progress", "reset begins unarmed")
+
+	reset_button.pressed.emit()
+	await process_frame
+	_expect(main.reset_armed, "first reset press only arms confirmation")
+	_expect(main.creature_captured, "first reset press preserves in-memory progress")
+	_expect(not SaveStore.load_state().is_empty(), "first reset press preserves persisted progress")
+	_expect(reset_button.text == "Confirm reset demo progress", "armed reset clearly asks for confirmation")
+
+	reset_button.pressed.emit()
+	await process_frame
+	_expect(not main.reset_armed, "confirmed reset disarms reset state")
+	_expect(not main.task_confirmed, "confirmed reset clears task state")
+	_expect(not main.encounter_ready, "confirmed reset clears encounter state")
+	_expect(not main.creature_captured, "confirmed reset clears captured state")
+	_expect(main.collection.count() == 0, "confirmed reset clears collection")
+	_expect(main.current_location == main.LOCATION_HOME, "confirmed reset returns to home")
+	_expect(SaveStore.load_state().is_empty(), "confirmed reset clears persisted save")
+	_expect(action_button.text == "Confirm task completion", "reset restores known initial parent state")
+	_expect("0 / 5" in collection_label.text, "reset restores empty collection summary")
 
 	SaveStore.reset()
-	print("PASS: parent -> child world cue -> forest encounter -> companion collection happy path")
+	print("PASS: parent -> child world cue -> companion collection -> safe reset happy path")
 	quit(0)
 
 func _expect(condition: bool, message: String) -> void:
