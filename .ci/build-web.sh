@@ -12,7 +12,12 @@ TEMPLATE_DIR="${HOME}/.local/share/godot/export_templates/4.6.3.stable"
 mkdir -p "$CACHE_ROOT" "$TEMPLATE_DIR" build/web
 
 if [ ! -f "$TPZ_PATH" ]; then
-  curl -fL --retry 3 --retry-delay 5 "$TEMPLATE_URL" -o "$TPZ_PATH"
+  tmp_tpz="$(mktemp "${TPZ_PATH}.tmp.XXXXXX")"
+  trap 'rm -f "$tmp_tpz"' EXIT
+  curl -fL --retry 3 --retry-delay 5 "$TEMPLATE_URL" -o "$tmp_tpz"
+  printf '%s  %s\n' "$TEMPLATE_SHA256" "$tmp_tpz" | sha256sum -c -
+  mv "$tmp_tpz" "$TPZ_PATH"
+  trap - EXIT
 fi
 
 printf '%s  %s\n' "$TEMPLATE_SHA256" "$TPZ_PATH" | sha256sum -c -
