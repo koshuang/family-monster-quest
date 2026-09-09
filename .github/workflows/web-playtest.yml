@@ -7,13 +7,13 @@ on:
     paths:
       - 'export_presets.cfg'
       - '.ci/build-web.sh'
+      - '.ci/run.sh'
+      - '.ci/setup-godot.sh'
       - '.github/workflows/web-playtest.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: web-playtest-${{ github.ref }}
@@ -31,17 +31,16 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Run canonical verification first
-        run: bash .ci/run.sh
-
       - name: Cache Godot export templates
         uses: actions/cache@v4
         with:
           path: ~/.cache/family-monster-quest/export-templates
           key: godot-export-templates-4.6.3-stable-v1
 
-      - name: Build Web export
-        run: bash .ci/build-web.sh
+      - name: Run canonical verification and Web export
+        env:
+          FMQ_BUILD_WEB: '1'
+        run: bash .ci/run.sh
 
       - name: Upload downloadable Web build
         uses: actions/upload-artifact@v4
@@ -58,6 +57,9 @@ jobs:
           path: build/web
 
   deploy-pages:
+    permissions:
+      pages: write
+      id-token: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
