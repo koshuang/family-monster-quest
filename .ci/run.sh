@@ -30,3 +30,8 @@ timeout 20s "$GODOT_BIN" --headless --path . --script res://tests/test_persisten
 
 printf '==> Deterministic Godot happy-path interaction test\n'
 timeout 15s "$GODOT_BIN" --headless --path . --script res://tests/test_happy_path.gd
+
+if [ "${FMQ_BUILD_WEB:-0}" = "1" ]; then
+  printf '==> Web export\n'
+  bash .ci/build-web.sh
+fi
